@@ -1,0 +1,27 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: pharmacy
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # если порт 5432 занят
+
+  backend:
+    build: .
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      DB_DSN: host=db user=postgres password=yourpassword dbname=pharmacy port=5432 sslmode=disable
+    depends_on:
+      - db
+
+volumes:
+  pgdata:

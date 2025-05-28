@@ -1,0 +1,61 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: pharmacy
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_DSN: host=localhost user=postgres password=password dbname=pharmacy port=5432 sslmode=disable
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20
+
+      - name: Download dependencies
+        run: go mod tidy
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..10}; do
+            pg_isready -h localhost -U postgres && break
+            echo "⏳ Waiting for Postgres..."
+            sleep 5
+          done
+
+      - name: Run Go build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Try running the app
+        run: |
+          nohup go run main.go &
+          sleep 5
+          curl -f http://localhost:8080/api/products || (echo "❌ API недоступен" && exit 1)
