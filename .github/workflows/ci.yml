@@ -48,6 +48,12 @@ jobs:
             sleep 5
           done
 
+      - name: Run migrations
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.16.2/migrate.linux-amd64.tar.gz | tar xvz
+          ./migrate -path ./migrations -database "postgres://postgres:password@localhost:5432/pharmacy?sslmode=disable" up
+        
+
       - name: Run Go build
         run: go build -v ./...
 
